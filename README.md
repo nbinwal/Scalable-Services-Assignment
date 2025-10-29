@@ -230,6 +230,53 @@ spec:
 
 **2. `kubernetes-manifests/catalog-db-deployment.yaml`** (MongoDB - Conceptual, same structure as above using `mongo` image and port `27017`)
 
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalog-db-deployment
+  labels:
+    app: catalog-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: catalog-db
+  template:
+    metadata:
+      labels:
+        app: catalog-db
+    spec:
+      containers:
+      - name: catalog-db-container
+        image: mongo:5.0-focal # Using a versioned MongoDB image
+        ports:
+        - containerPort: 27017
+        env: # Environment variables for initial database setup
+        - name: MONGO_INITDB_DATABASE
+          value: "catalogdb"
+        - name: MONGO_INITDB_ROOT_USERNAME
+          value: "cataloguser"
+        - name: MONGO_INITDB_ROOT_PASSWORD
+          value: "catalogpass"
+        # Persistence configuration would typically go here
+---
+# 2. Service to expose the Catalog DB internally
+apiVersion: v1
+kind: Service
+metadata:
+  name: catalog-db-service # Internal DNS name used by the Catalog Microservice
+spec:
+  selector:
+    app: catalog-db
+  ports:
+    - protocol: TCP
+      port: 27017
+      targetPort: 27017
+  type: ClusterIP # Internal-only access
+```
+
+
 #### B. Microservice Deployment YAMLs
 
 **1. `kubernetes-manifests/user-service.yaml`**
@@ -275,7 +322,53 @@ spec:
   type: NodePort # Allows external access
 ```
 
-**2. `kubernetes-manifests/catalog-service.yaml`** (Conceptual, same structure as above using `catalog-service:v1` image, container port `3000`, and external port `8081`).
+**2. `kubernetes-manifests/catalog-service.yaml`** (Conceptual, same structure as above using `catalog-service:v1` image, container port `3000`, and external port `8081`.
+
+```yaml
+# 1. Deployment for the Catalog Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalog-deployment
+  labels:
+    app: catalog-service
+spec:
+  replicas: 2 # Scalability: Run 2 instances
+  selector:
+    matchLabels:
+      app: catalog-service
+  template:
+    metadata:
+      labels:
+        app: catalog-service
+    spec:
+      containers:
+      - name: catalog-container
+        image: catalog-service:v1 # Image name built locally in Minikube
+        imagePullPolicy: Never # Crucial: tells Kubernetes to use the local image
+        ports:
+        - containerPort: 3000 # The port defined in server.js
+        env: # Configuration linking to the database service
+        - name: DB_HOST
+          value: "catalog-db-service"
+        - name: DB_PORT
+          value: "27017"
+---
+# 2. Service to expose the Catalog Service externally (for Postman testing)
+apiVersion: v1
+kind: Service
+metadata:
+  name: catalog-service # Internal DNS name
+spec:
+  selector:
+    app: catalog-service
+  ports:
+    - protocol: TCP
+      port: 8081 # External Port (different from User Service 8080)
+      targetPort: 3000 # Maps to the containerPort
+  type: NodePort # Allows external access via minikube IP
+
+  ```
 
 #### C. Deployment Steps on Minikube
 
