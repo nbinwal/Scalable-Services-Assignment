@@ -307,5 +307,90 @@ spec:
     minikube service user-service --url
     # Use Postman to call the resulting URL, e.g., GET <URL>/users/1
     ```
+-----
+Here are the complete steps to install and start Minikube on your Mac, assuming you already have Homebrew installed (the standard package manager for macOS).
+
+## 💻 Minikube Setup on Mac
+
+### 1\. Install Prerequisites
+
+Before installing Minikube, you need two command-line tools: **`kubectl`** (the Kubernetes command-line tool) and **Minikube** itself.
+
+| Tool | Purpose | Installation Command (using Homebrew) |
+| :--- | :--- | :--- |
+| **kubectl** | Communicates with the Kubernetes cluster (Minikube). | `brew install kubectl` |
+| **Minikube** | Runs a single-node Kubernetes cluster locally. | `brew install minikube` |
+
+### 2\. Start Minikube Cluster
+
+You will start Minikube, specifying the driver. On Mac, the default is usually **HyperKit** (a lightweight macOS virtualization solution) or **Docker** (if you have Docker Desktop installed). Using the Docker driver is often the simplest, as it requires no extra setup.
+
+1.  **Start Minikube using the Docker driver (Recommended)**:
+
+    ```bash
+    minikube start --driver=docker
+    ```
+
+    *If you don't have Docker Desktop running, this command will likely fail. Ensure Docker Desktop is running in your background applications.*
+
+2.  **Start Minikube using the HyperKit driver (Alternative)**:
+
+    ```bash
+    minikube start --driver=hyperkit
+    ```
+
+    *If you choose HyperKit, you may need to install it first: `brew install hyperkit`.*
+
+### 3\. Verify Installation
+
+After the cluster starts, Minikube automatically configures `kubectl` to use it. You can verify the cluster status and the node.
+
+1.  **Check Cluster Status**:
+    ```bash
+    minikube status
+    # Output should show: host: Running, kubelet: Running, apiserver: Running, kubeconfig: Configured
+    ```
+2.  **Check Kubernetes Nodes**:
+    ```bash
+    kubectl get nodes
+    # Output should show one node (e.g., 'minikube') with a status of 'Ready'.
+    ```
 
 -----
+
+## 🛠️ Essential Steps for the Assignment
+
+Once Minikube is running, execute these commands, which are **critical** for deploying your microservices:
+
+### A. Point Docker to Minikube's Daemon
+
+This command tells your local Docker client to use the Docker daemon **inside** the Minikube virtual machine. This is how you allow your locally built images (`user-service:v1`, etc.) to be seen by Kubernetes **without** having to push them to Docker Hub.
+
+```bash
+eval $(minikube docker-env)
+```
+
+### B. Build Your Images
+
+Now, when you run `docker build` in your service directories, the images will reside inside your Minikube cluster, ready for deployment.
+
+```bash
+# Example for User Service:
+cd user-service/
+docker build -t user-service:v1 . 
+```
+
+### C. Deploy and Access Dashboard
+
+1.  **Deploy your YAML files**:
+    ```bash
+    kubectl apply -f kubernetes-manifests/user-service.yaml
+    # etc.
+    ```
+2.  **Access the Dashboard** (Required for assignment snapshot):
+    ```bash
+    minikube dashboard
+    ```
+-----
+
+
