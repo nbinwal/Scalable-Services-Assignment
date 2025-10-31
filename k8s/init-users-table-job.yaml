@@ -1,0 +1,25 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: init-users-table
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: init-users
+          image: postgres:15
+          command:
+            - sh
+            - -c
+            - |
+              echo "Initializing users table..."
+              psql postgresql://postgres:postgres@postgres:5432/postgres <<'SQL'
+              CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(200) NOT NULL,
+                email VARCHAR(200) UNIQUE NOT NULL
+              );
+              SQL
+              echo "✅ users table ready."
